@@ -1,0 +1,77 @@
+#advanced CMD notes
+
+syntax of the deployment files and kubectl commands
+
+
+If you are new to YAML file,  read Introduction to YAML: Creating a Kubernetes deployment
+
+'---' is used for separating documents. It allows us to place multiple things in a single file - e.g. services, deployments, etc. We could have made separate documents. One for service, one for deployment, but the '---' allows us placing them in a single file.
+
+What is apiVersion and which Kubernetes apiVersion Should I Use?
+
+Difference between kubectl create and kubectl apply : kubectl create can be used only for creating new deployments; kubectl apply can be used for both creating and updating deployments. Other than that they're pretty much identical.
+
+
+# Volumes Commands
+
+kubectl create -f local-volumes.yaml
+kubectl apply -f mysql-deployment.yaml
+kubectl apply -f wordpress-deployment.yaml
+minikube service wordpress --url
+
+#Secrets Commands
+kubectl create secret generic db-user-pass --from-file=./username.txt --from-file=./password.txt
+kubectl create secret generic mysql-pass --from-literal=password=PASSWORDS_IN_PLAIN_TEXT_ARE_BAD_WE_WILL_SHOW_SOMETHING_MORE_SECURE_LATER
+kubectl get secret
+
+kubectl apply -f mysql-deployment.yaml
+kubectl apply -f wordpress-deployment.yaml
+minikube service wordpress --url
+
+
+#Namespaces & Resource Quotas Commands
+
+kubectl create namespace <namespace name>
+kubectl get namespace
+kubectl create namespace cpu-limited-tomcat
+kubectl create -f ./cpu-limits.yaml —namespace=cpu-limited-tomcat (from the GitHub repo directory for this lecture)
+kubectl apply -f ./tomcat-deployment.yaml —namespace=cpu-limited-tomcat (from the GitHub repo directory for this lecture)
+kubectl describe deployment tomcat-deployment —namespace=cpu-limited-tomcat
+
+# Auto-Scaling Commands
+
+Commands
+(In the first terminal)
+
+# since the latest minikube doesn't enable metrics-server by default
+minikube addons enable metrics-server
+
+kubectl apply -f ./wordpress-deployment.yaml
+
+kubectl autoscale deployment wordpress --cpu-percent=50 --min=1 --max=5
+(In the other terminal)
+
+kubectl run -i --tty load-generator --image=busybox /bin/sh
+
+while true; do wget -q -O- http://wordpress.default.svc.cluster.local; done
+(In the first terminal)
+
+kubectl get hpa
+
+
+Trouble Shooting
+In the other terminal where the load-generator is running, if it shows below errors
+
+/ # while true ; do wget -q -O- http://wordpress.default.svc.cluster.local ; done
+wget: can't connect to remote host (10.XX.XXX.XXX): Network is unreachable
+wget: can't connect to remote host (10.XX.XXX.XXX): Network is unreachable
+wget: can't connect to remote host (10.XX.XXX.XXX): Connection timed out
+wget: can't connect to remote host (10.XX.XXX.XXX): Network is unreachable
+wget: can't connect to remote host (10.XX.XXX.XXX): Connection timed out
+Solution:
+
+replace http://wordpress.default.svc.cluster.local with the output of minikube service wordpress --url
+
+For example:
+
+while true ; do wget -q -O- http://192.168.99.100:32094 ; done
